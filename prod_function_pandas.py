@@ -63,29 +63,29 @@ def new_product(chemin):
 
 # Option 3 : delete product row
 def delete_product(chemin):
-  row_to_delete = input("Enter the row you wish to delete.")
-  try:  # Utilisation de try en cas d'erreurs du fichier
-    df = pd.read_csv(chemin)  # Changed from 'products_functions.py' to 'products.csv'
-    reader = pd.DataFrame(open(chemin))  # Added open function to read the csv
-    rows = [row for row in reader if row["P_name"] != row_to_delete]  # Définir les lignes qui ne correspondent pas à celle indiqué pour deletion
-    #Fixed indentation of next line
-    total_rows = len(df) # Calcul du nombre total de lignes
-    if len(rows) == 0 or len(rows) == total_rows:
-      print(f"No row with Name = '{row_to_delete}' was found.") # Indique si la ligne n'existe pas
-      return
-    #Fixed indentation and removed pd.DataFrame call on a string
-    df = pd.read_csv(chemin)
-    df.drop(df[df['P_name'] == row_to_delete].index, inplace=True)
-    print(f"The product : {row_to_delete} has been deleted.")
-  except FileNotFoundError:
-    print(f"Error: The file '{produits}' does not exist.") #'produits' variable is not defined. You should use products.csv or the defined filename
-  except KeyError:
-    print(f"Error: The column 'P_name' does not exist in the file.")
+    row_to_delete = input("Enter the row you wish to delete.")
+    try:  # Utilisation de try en cas d'erreurs du fichier
+        df = pd.read_csv(chemin)  # Changed from 'products_functions.py' to 'products.csv'
+        reader = pd.DataFrame(open(chemin))  # Added open function to read the csv
+        rows = [row for row in reader if row["P_name"] != row_to_delete]  # Définir les lignes qui ne correspondent pas à celle indiqué pour deletion
+        #Fixed indentation of next line
+        total_rows = len(df) # Calcul du nombre total de lignes
+        if len(rows) == 0 or len(rows) == total_rows:
+            print(f"No row with Name = '{row_to_delete}' was found.") # Indique si la ligne n'existe pas
+            return
+        #Fixed indentation and removed pd.DataFrame call on a string
+        df = pd.read_csv(chemin)
+        df.drop(df[df['P_name'] == row_to_delete].index, inplace=True)
+        print(f"The product : {row_to_delete} has been deleted.")
+    except FileNotFoundError:
+        print(f"Error: The file '{produits}' does not exist.") #'produits' variable is not defined. You should use products.csv or the defined filename
+    except KeyError:
+        print(f"Error: The column 'P_name' does not exist in the file.")
 
 def search_prod() :
     df = pd.read_csv(chemin)
     prod_to_search = input("Enter the product you wish to search : ")
-    if prod_to_search is in df["P_name"] :
+    if prod_to_search in df["P_name"] :
         location = df["P_name"].index(prod_to_search)
         return f"Product {prod_to_search} found at index {location}"
     else : 

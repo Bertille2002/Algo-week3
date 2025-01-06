@@ -63,6 +63,7 @@ def new_user() :
     # ask for sign up details 
     new_name = input("Enter your first name : ")
     new_lname = input("Enter your last name : ")
+    new_email = input("Enter your e-mail address : ")
     new_username = input("Enter your username : ")
     new_password = input("Enter your password : ")
     new_date = 'NA'
@@ -82,6 +83,7 @@ def new_user() :
         'ID': [new_id],
         'first_name': [new_name],
         'last_name': [new_lname],
+        'email': [new_email],
         'username': [new_username],
         'password': [hashed_password],
         'order_date': [new_date]
@@ -96,7 +98,7 @@ def new_user() :
     # Create new csv products file
     orders_file = os.path.join(folder_path,f'orders_{new_username}.csv')
     if not os.path.exists(orders_file) :
-        orders_df = pd.DataFrame(columns=["ID", "first_name", "last_name", "username", "password", "order_date"])
+        orders_df = pd.DataFrame(columns=["ID", "first_name", "last_name", "email", "username", "password", "order_date"])
         orders_df.to_csv(orders_file, index=False)
     print(f"Orders file '{orders_file}' created in '{folder_path}' folder.")
 
