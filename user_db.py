@@ -32,7 +32,7 @@ def hash_passwords() :
         salt = generate_salt()
         salted_password = salt + password
         hashed_password = hashlib.sha256(salted_password.encode()).hexdigest()
-        return salted_password, salt
+        return hashed_password, salt
     # Apply the hash_value function to each password
     df[['password','salt']] = df['password'].apply(lambda x: pd.Series(hash_value(x)))
     df.to_csv('users_hashed_salted.csv',index=False)

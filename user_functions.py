@@ -77,7 +77,7 @@ def new_user() :
         print("Username already exists.")
         return
     # Genertate salt and hash for password 
-    hashed_password = hashlib.sha256(new_password.encode())
+    hashed_salted_password = hashlib.sha256(new_password.encode())
     # Define new row
     new_user_data = {
         'ID': [new_id],
@@ -85,7 +85,7 @@ def new_user() :
         'last_name': [new_lname],
         'email': [new_email],
         'username': [new_username],
-        'password': [hashed_password],
+        'password': [hashed_salted_password],
         'order_date': [new_date]
     }
     new_df = pd.DataFrame(new_user_data)

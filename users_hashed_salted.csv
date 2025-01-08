@@ -1,7 +1,7 @@
 ID,first_name,last_name,email,username,password,order_date,salt
-1,Alice,Beaumont,ngarcia.mit@gmail.com,alice12,457dbda27b49e976ceb2309e84dcd4feabcd1234,12-05-24,457dbda27b49e976ceb2309e84dcd4fe
-2,Jean,Dubois,ngarcia.mit@gmail.com,JD_3,80d4d2865ae8e8978ca062ccff719b0asigma13!,27-12-23,80d4d2865ae8e8978ca062ccff719b0a
-3,Simon,Schmitt,simonschmitt@gmail.com,Simsum,49adf56a5d99b8642843fd75b20b2c53T4ylor_$wift,18-10-21,49adf56a5d99b8642843fd75b20b2c53
-4,Chloe,Lukasiak,chloelukasiak@yahoo.fr,chlobird,7ce3e62a6f75bbe6849220194675b9e0C4itlyn_Cl4rk,01-08-15,7ce3e62a6f75bbe6849220194675b9e0
-5,Maddie,Ziegler,maddieziegler@gmail.com,madz,83f35f8cc32dbeda9e6b9e262e2c9bde0ui0uiBag3tte,15-02-14,83f35f8cc32dbeda9e6b9e262e2c9bde
-6,Aaron,Colin,aaroncolin@gmail.com,aaroncol,59e535c5d78beb630d671ae0bde18664Sl4yYy_,30-11-22,59e535c5d78beb630d671ae0bde18664
+1,Alice,Beaumont,ngarcia.mit@gmail.com,alice12,0dc8a85a5b4cbadd514d09ceaa6be1de9863818a7dcd598f6a3fdf5317051df2,12-05-24,1fe1e6e252f378565d2864a2ede13210
+2,Jean,Dubois,ngarcia.mit@gmail.com,JD_3,3e0392880c325d1f31d4a4936fe8a31635ba1ef1b1e9dfc9e9a07e7426d11c0f,27-12-23,49b44000878af8453f4cbc6a909f9b94
+3,Simon,Schmitt,simonschmitt@gmail.com,Simsum,00b623ba5b073a2c970b4145bffbd611536c3ebaac23c983c4fdbafdc1162e88,18-10-21,d80ee7fc81ef9cfa1bd9e84acb81f368
+4,Chloe,Lukasiak,chloelukasiak@yahoo.fr,chlobird,5c65f93a006892e9fe2b776e82d2ddffa6437f2eea02b2f4fc416ef32d63d07e,01-08-15,feabdc9fab41d65a97ca3b4c7a233c87
+5,Maddie,Ziegler,maddieziegler@gmail.com,madz,07ab51f43a67ad17a6004c21e04938a1bc81bbf140b70643677759608a776982,15-02-14,3727b1c11f342fd3c1745f1d469ef6f9
+6,Aaron,Colin,aaroncolin@gmail.com,aaroncol,ca19acf657fdd968ab6354be6417e6a1418ad6397b93608ed52f1aaaa2798504,30-11-22,3dbfa6591697b69090dac70ed72e9611
