@@ -153,11 +153,17 @@ class AppWindow(Tk) :
         view_prods_button = Button(menu_window, text= "View my product", width=30)
         view_prods_button.pack(pady=10)
 
-        add_prod_button = Button(menu_window, text= "Delete account", width=30)
+        add_prod_button = Button(menu_window, text= "Order new product", width=30)
         add_prod_button.pack(pady=10)
 
-        del_prod_button = Button(menu_window, text= "Delete account", width=30)
+        del_prod_button = Button(menu_window, text= "Delete product order", width=30)
         del_prod_button.pack(pady=10)
+
+        search_prod_button = Button(menu_window, text= "Search for product", width=30)
+        search_prod_button.pack(pady=10)
+
+        sort_prod_button = Button(menu_window, text= "View products sorted", width=30)
+        sort_prod_button.pack(pady=10)
 
     def open_signup_window(self) : 
         signup_window = Toplevel(self)
