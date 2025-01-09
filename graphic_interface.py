@@ -127,7 +127,7 @@ class AppWindow(Tk) :
             messagebox.showerror("Error","Please enter both username and password.")
         
     def open_user_menu(self, username) : 
-        self.destroy()
+        self.withdraw()
         menu_window = Toplevel()
         menu_window.title("MyAmazone account")
         menu_window.geometry("700x500")
@@ -138,7 +138,7 @@ class AppWindow(Tk) :
         top_bar2 = Label(menu_window, text="",bg="VioletRed3")
         top_bar2.pack(side="top",fill='x')
         
-        logout_button = Button(menu_window, text= "Log out", width=6, bg='white',fg='black')
+        logout_button = Button(menu_window, text= "Log out", width=6, bg='white',fg='black',command=lambda: self.logout(menu_window))
         logout_button.place(x=10,y=52)
 
         check_pwd_button = Button(menu_window, text= "Check password strength", width=19, bg='white')
@@ -150,7 +150,7 @@ class AppWindow(Tk) :
         del_button = Button(menu_window, text= "Delete account", width=12, bg='white')
         del_button.place(x=440,y=51)
 
-        view_prods_button = Button(menu_window, text= "View my product", width=30)
+        view_prods_button = Button(menu_window, text= "View my products", width=30)
         view_prods_button.pack(pady=10)
 
         add_prod_button = Button(menu_window, text= "Order new product", width=30)
@@ -164,6 +164,12 @@ class AppWindow(Tk) :
 
         sort_prod_button = Button(menu_window, text= "View products sorted", width=30)
         sort_prod_button.pack(pady=10)
+
+    def logout(self, menu_window) :
+        response = messagebox.askyesno("Logout", "Are you sure you want to log out?")
+        if response:
+            menu_window.destroy()
+            self.deiconify()
 
     def open_signup_window(self) : 
         signup_window = Toplevel(self)
