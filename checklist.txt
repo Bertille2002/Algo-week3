@@ -1,0 +1,10 @@
+login = done
+view products 
+logout = done 
+change user info 
+delete account 
+order new products 
+    - make csv of available products = done 
+sort products with check boxes
+delete product 
+product search 

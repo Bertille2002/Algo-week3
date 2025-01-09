@@ -9,7 +9,7 @@ from email.message import EmailMessage
 def gen_resetLink() :
     token = str(uuid.uuid4())
     expiration_date = datetime.now() + timedelta(hours=1)
-    link = f"https://reset-password.local/{token}"
+    link = f"https://localhost/change_data/{token}"
     print(f"The reset link generated is : {link}")
     print(f"This link expires at : {expiration_date}")
     return link 
@@ -26,7 +26,9 @@ We have noticed that your password might have been compromised. For safety reaso
                 
 Please use this link in order to reset your password {reset_link}
                 
-This link will expire in an hour
+This link will expire in an hour.
+
+Or you can directly change your user's data on our plateform.
                 
 If you are not the source of this request or if you have any question, please contact our security team. 
                 

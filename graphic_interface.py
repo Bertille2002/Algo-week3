@@ -1,8 +1,13 @@
-from tkinter import Tk, Label, Entry, messagebox, Toplevel, Button
+from tkinter import Tk, Label, Entry, messagebox, Toplevel, Button, Frame, Text 
 import pandas as pd
 import hashlib
 import csv_files
 import os  
+import requests
+import smtplib 
+import uuid
+from datetime import datetime, timedelta
+from email.message import EmailMessage
 
 # Load user data from a CSV file
 def load_hashed_user_data():
@@ -117,14 +122,75 @@ class AppWindow(Tk) :
                 salted_input_password = stored_salt + password 
                 hashed_input_password = hashlib.sha256(salted_input_password.encode()).hexdigest()
                 if hashed_input_password == stored_hashed_password :
-                    messagebox.showinfo("Success", f"Welcome, {username}!")
-                    self.open_user_menu(username)
+                    if self.check_password_pwned(password) : 
+                        messagebox.showinfo("Success", f"Welcome, {username}! Unfortunately, Our systems have detected that your password may be compromised. Please change it on our plateform or use the link we have sent you via e-mail.")
+                        self.open_user_menu(username)
+                    else :
+                        messagebox.showinfo("Success", f"Welcome, {username}!")
+                        self.open_user_menu(username)
                 else : 
                     messagebox.showerror("Error", "Incorrect password.")
             else : 
                 messagebox.showerror("Error","Username not found.")
         else : 
             messagebox.showerror("Error","Please enter both username and password.")
+
+    def gen_resetLink(self) :
+        token = str(uuid.uuid4())
+        expiration_date = datetime.now() + timedelta(hours=1)
+        link = f"https://localhost/change_data/{token}"
+        print(f"The reset link generated is : {link}")
+        print(f"This link expires at : {expiration_date}")
+        return link 
+
+    def compPWD_email(self, user_email, reset_link) :
+        msg = EmailMessage()
+        msg['Subject'] = "Important : Reset your TheAmazone password."
+        msg['From'] = "ngarcia.mit@gmail.com"
+        msg['To'] = user_email
+        msg.set_content(f"""
+    Hello,
+                    
+    We have noticed that your password might have been compromised. For safety reasons we recommend you change your current password.
+                    
+    Please use this link in order to reset your password {reset_link}
+                    
+    This link will expire in an hour.
+
+    Or you can directly change your user's data on our plateform.
+                    
+    If you are not the source of this request or if you have any question, please contact our security team. 
+                    
+    Best regards,
+    TheAmazone security team <3.
+                    """)
+        try : 
+            with smtplib.SMTP("smtp.gmail.com", 587) as server :
+                server.starttls()
+                server.login("ngarcia.mit@gmail.com","fflwnhelkhpyhuon")
+                server.send_message(msg)
+            print("Email sent successfully !")
+        except Exception as e : 
+            print(f"Error during sending {e}")
+    
+    def check_password_pwned(self, password) :
+        sha1_hash = hashlib.sha1(password.encode('utf-8')).hexdigest().upper()
+        first5 = sha1_hash[:5]
+        remaining_hash = sha1_hash[5:]
+        url = f"https://api.pwnedpasswords.com/range/{first5}"
+        response = requests.get(url)
+        if response.status_code == 200 :
+            hashes = response.text.splitlines()
+            for hash_entry in hashes : 
+                hash_part, count = hash_entry.split(':')
+                if hash_part == remaining_hash :
+                    reset_link = self.gen_resetLink()
+                    user_email = 'ngarcia.mit@gmail.com'
+                    self.compPWD_email(user_email, reset_link)
+                    return True
+        else : 
+            print("Error connecting to Have I been Pwned API.")
+        return False 
         
     def open_user_menu(self, username) : 
         self.withdraw()
@@ -137,32 +203,36 @@ class AppWindow(Tk) :
         top_bar.pack(side="top",fill='x')
         top_bar2 = Label(menu_window, text="",bg="VioletRed3")
         top_bar2.pack(side="top",fill='x')
+
+        button_frame = Frame(menu_window, width=200)
+        button_frame.pack(side="left",fill="y")
+        button_frame.pack_propagate(False) # Prevent resizing of the frame
+        
+        result_area = Text(menu_window, wrap="word",width=100, height=25)
+        result_area.pack(side="right", fill="both", expand=True)
         
         logout_button = Button(menu_window, text= "Log out", width=6, bg='white',fg='black',command=lambda: self.logout(menu_window))
         logout_button.place(x=10,y=52)
 
-        check_pwd_button = Button(menu_window, text= "Check password strength", width=19, bg='white')
-        check_pwd_button.place(x=95,y=52)
-
         change_user_info_button = Button(menu_window, text= "Change user info", width=14, bg='white')
-        change_user_info_button.place(x=285,y=52)
+        change_user_info_button.place(x=100,y=52)
 
         del_button = Button(menu_window, text= "Delete account", width=12, bg='white')
-        del_button.place(x=440,y=51)
+        del_button.place(x=270,y=52)
 
-        view_prods_button = Button(menu_window, text= "View my products", width=30)
+        view_prods_button = Button(button_frame, text= "View my products", width=30, command=lambda: self.view_myprod(result_area, username))
         view_prods_button.pack(pady=10)
 
-        add_prod_button = Button(menu_window, text= "Order new product", width=30)
+        add_prod_button = Button(button_frame, text= "Order new product", width=30, command=lambda: self.add_prod(result_area, username))
         add_prod_button.pack(pady=10)
 
-        del_prod_button = Button(menu_window, text= "Delete product order", width=30)
+        del_prod_button = Button(button_frame, text= "Delete product order", width=30, command=lambda: self.delete_prod(result_area, username))
         del_prod_button.pack(pady=10)
 
-        search_prod_button = Button(menu_window, text= "Search for product", width=30)
+        search_prod_button = Button(button_frame, text= "Search for product", width=30, command=lambda: self.search_prod(result_area, username))
         search_prod_button.pack(pady=10)
 
-        sort_prod_button = Button(menu_window, text= "View products sorted", width=30)
+        sort_prod_button = Button(button_frame, text= "View products sorted", width=30)
         sort_prod_button.pack(pady=10)
 
     def logout(self, menu_window) :
@@ -248,6 +318,84 @@ class AppWindow(Tk) :
         
         Button(signup_window, text = "Create account", fg="black", width = 15, command = submit_signup).place(x=130,y=295)
 
+    def view_myprod(self, result_area, username):
+        try :
+            df = pd.read_csv(f'csv_files/orders_{username}.csv')
+            result_area.delete(1.0, END)
+            result_area.insert(END, "List of products : \n")
+            for index, row in df.iterrows():
+                prod_list.insert(END, f"{row['P_name']}\n")
+        except FileNotFoundError:
+            messagebox.showerror("Error", "File was not found")
+
+    def next_prodid(self): 
+        try:
+            df = pd.read_csv(f'csv_files/orders_{username}.csv')
+            last_id = df['ID'].max()
+            return int(last_id) + 1  
+        except FileNotFoundError:
+            return 1 
+
+    def add_prod(self, username):
+        new_prod = product_name_entry.get()
+        new_price = price_entry.get()
+        new_expdate = expdate_entry.get()
+
+        if not new_prod or not new_quant or not new_price or not new_expdate:
+            messagebox.showwarning("Input error", "Please fill all fields")
+            return 
+
+        new_id = next_prodid()
+        new_row = {'ID': new_id, 'P_name' : new_prod, 'P_price (in $/Kg)' : new_price, 'order_date' : new_expdate}
+
+        try : 
+            df = pd.read_csv(f'csv_files/orders_{username}.csv')
+            df = df.append(new_row, ignore_index=True)
+            df.to_csv(f'csv_files/orders_{username}.csv', index=False)
+            messagebox.showinfo("New product added successfully !")
+            clear.entries()
+            view_myprod()
+        except FileNotFoundError:
+            df = pd.DataFrame([new_row])
+            df.to_csv(f'csv_files/orders_{username}.csv', index=False)
+            messagebox.showinfo("New product added successully !")
+            clear.entries()
+            view_myprod()
+
+    def delete_prod():
+        row_to_delete= delete_name_entry.get()
+
+        if not row_to_delete :
+            messagebox.showwarning("Input error", "Please enter the product's name you wish to delete")
+            return
+
+        try:
+            df = pd.read_csv(f'csv_files/orders_{username}.csv')
+            df = df[df['P_name'] != row_to_delete]
+            df.to_csv(f'csv_files/orders_{username}.csv', index = False)
+            messagebox.showinfo(f"Product '{row_to_delete}' deleted successully !")
+            delete_name_entry.delete(0, tk.END)
+            view_myprod()
+        except FileNotFoundError :
+            messagebox.showerror("Error", "The file was not found")
+
+    def search_prod():
+        prod_to_search = search_name_entry.get()
+
+        if not prod_to_search:
+            messagebox.showwarning("Input error", "Please enter the product's name you wish to search : ")
+            return 
+
+        try : 
+            df = pd.read_csv(f'csv_files/orders_{username}.csv')
+            if prod_to_search in df['P_name'].values:
+                result = df[df['P_name'] == prod_to_search]
+                prod_list.delete(1.0, tk.END)
+                prod_list.insert[tk.END, f"Product found : {result.iloc[0]['P_name']} | ID: {result.iloc[0]['ID']} | Quantity : {result.iloc[0]['P_quantity']} | Price : {result.iloc[0] ['P_price (in $/Kg)]']} | Date : {result.iloc[0]['order_date']}\n"]
+            else : 
+                messagebox.showinfo("Search result", f"Product '{prod_to_search}' not found")
+        except FileNotFoundError :
+            messagebox.showerror("Error","The csv file was not found.")
 
 window = AppWindow()
 window.mainloop()
