@@ -200,7 +200,7 @@ class AppWindow(Tk) :
         menu_window = Toplevel()
         menu_window.title("MyAmazone account")
         menu_window.geometry("700x500")
-        Label(menu_window, text=f"Welcome, {username}", font = ("Arial",12)).pack(pady=10)
+        Label(menu_window, text=f"Welcome, {username} !", font = ("Arial",12)).pack(pady=10)
 
         top_bar = Label(menu_window, text="",bg="VioletRed3")
         top_bar.pack(side="top",fill='x')
@@ -217,10 +217,10 @@ class AppWindow(Tk) :
         logout_button = Button(menu_window, text= "Log out", width=6, bg='white',fg='black',command=lambda: self.logout(menu_window))
         logout_button.place(x=10,y=52)
 
-        change_user_info_button = Button(menu_window, text= "Change user info", width=14, bg='white')
+        change_user_info_button = Button(menu_window, text= "Change user info", width=14, bg='white', command=lambda: self.open_change_user_info_window(username))
         change_user_info_button.place(x=100,y=52)
 
-        del_button = Button(menu_window, text= "Delete account", width=12, bg='white')
+        del_button = Button(menu_window, text= "Delete account", width=12, bg='white', command=lambda: self.open_delete_account_window(username))
         del_button.place(x=270,y=52)
 
         view_prods_button = Button(button_frame, text= "View my products", width=30, command=lambda: self.view_myprod(result_area, username))
@@ -235,7 +235,7 @@ class AppWindow(Tk) :
         search_prod_button = Button(button_frame, text= "Search for product in file", width=30, command=lambda: self.open_search_prod_form(result_area, username))
         search_prod_button.pack(pady=10)
 
-        sort_prod_button = Button(button_frame, text= "View ordered products sorted", width=30)
+        sort_prod_button = Button(button_frame, text= "View ordered products sorted", width=30, command=lambda: self.open_sort_orders_form(result_area, username))
         sort_prod_button.pack(pady=10)
 
     def logout(self, menu_window) :
@@ -321,7 +321,99 @@ class AppWindow(Tk) :
         
         Button(signup_window, text = "Create account", fg="black", width = 15, command = submit_signup).place(x=130,y=295)
 
-    def view_myprod(self, result_area, username):
+    def open_change_user_info_window(self, username) :
+        change_info_window = Toplevel(self)
+        change_info_window.title("Change User Info")
+        change_info_window.geometry("400x300")
+
+        Label(change_info_window, text="New Username :").grid(row=0, column=0, padx=5, pady=10)
+        new_username_entry = Entry(change_info_window)
+        new_username_entry.grid(row=0, column=1, padx=5, pady=10)
+
+        Label(change_info_window, text="New Password :").grid(row=1, column=0, padx=5, pady=10)
+        new_password_entry = Entry(change_info_window, show="*")
+        new_password_entry.grid(row=1, column=1, padx=5, pady=10)
+
+        Label(change_info_window, text="Confirm Password :").grid(row=2, column=0, padx=5, pady=10)
+        confirm_password_entry = Entry(change_info_window, show="*")
+        confirm_password_entry.grid(row=2, column=1, padx=5, pady=10)
+
+        def save_changes() :
+            new_username = new_username_entry.get().strip()
+            new_password = new_password_entry.get().strip()
+            confirm_password = confirm_password_entry.get().strip()
+
+            if not new_username or not new_password or not confirm_password :
+                messagebox.showwarning("Input error", "All fields are required!")
+                return
+            
+            if new_password != confirm_password :
+                messagebox.showwarning("Password error", "Passwords do not match!")
+                return
+            
+            try:
+                users_df = pd.read_csv('users_hashed_salted.csv')
+                user_row = users_df[users_df['username'] == username]
+                if user_row.empty:
+                    messagebox.showerror("Error", "User not found!")
+                    return
+                salt = user_row['salt'].values[0]
+                new_password_hashed = hashlib.sha256(f"{new_password}{salt}".encode()).hexdigest()
+                users_df.loc[users_df['username'] == username, 'username'] = new_username
+                users_df.loc[users_df['username'] == new_username, 'password'] = new_password_hashed
+                users_df.to_csv('users_hashed_salted.csv', index=False)
+                messagebox.showinfo("Success", "User info updated successfully!")
+                change_info_window.destroy()
+            except FileNotFoundError:
+                messagebox.showerror("Error", "User data file not found.")
+            except Exception as e:
+                messagebox.showerror("Error", f"An error occurred: {e}")
+        
+        save_button = Button(change_info_window, text="Save Changes", command=save_changes)
+        save_button.grid(row=3, column=0, columnspan=2, pady=10)
+
+
+    def open_delete_account_window(self, username) :
+        delete_account_window = Toplevel(self)
+        delete_account_window.title("Delete Account")
+        delete_account_window.geometry("400x300")
+
+        Label(delete_account_window, text="Re-enter your password to delete your account:").grid(row=0, column=0, padx=5, pady=10)
+        password_entry = Entry(delete_account_window, show="*")
+        password_entry.grid(row=0, column=1, padx=5, pady=10)
+
+        def delete_account() :
+            entered_password = password_entry.get().strip()
+            if not entered_password :
+                messagebox.showwarning("Input error", "Please enter your password to confirm.")
+                return
+            try : 
+                users_df = pd.read_csv('users_hashed_salted.csv')
+                user_row = users_df[users_df['username'] == username]
+                if user_row.empty :
+                    messagebox.showerror("Error", "User not found.")
+                    return
+                salt = user_row['salt'].values[0]
+                stored_password_hash = user_row['password'].values[0]
+                entered_password_hash = hashlib.sha256(f"{entered_password}{salt}".encode()).hexdigest()
+                if entered_password_hash == stored_password_hash :
+                    users_df = users_df[users_df['username'] != username]
+                    users_df.to_csv('users_hashed_salted.csv', index=False)
+                    messagebox.showinfo("Success", "Your account has been deleted successfully.")
+                    delete_account_window.destroy()
+                else : 
+                    messagebox.showerror("Password error", "Incorrect password. Account not deleted.")
+            except FileNotFoundError :
+                messagebox.showerror("Error", "User data file not found.")
+            except Exception as e :
+                messagebox.showerror("Error", f"An error occurred: {e}")
+        
+        delete_button = Button(delete_account_window, text="Delete Account", command=delete_account)
+        delete_button.grid(row=1, column=0, columnspan=2, pady=10)
+        cancel_button = Button(delete_account_window, text="Cancel", command=delete_account_window.destroy)
+        cancel_button.grid(row=2, column=0, columnspan=2, pady=10)
+
+    def view_myprod(self, result_area, username) :
         try :
             df = pd.read_csv(f'csv_files/orders_{username}.csv')
             result_area.delete(1.0, END)
@@ -500,58 +592,40 @@ class AppWindow(Tk) :
         search_button = Button(form_frame, text="Search", command=search_product)
         search_button.grid(row=1, column=0, columnspan=2, pady=10)
 
+    def open_sort_orders_form(self, result_area, username) : 
+        result_area.delete(1.0, END)
 
-    # def sort_quantity():
-    #     try :
-    #         df = pd.read_csv(f'csv_files/orders_{username}.csv')
-    #         df_sorted = df.sort_values(by='P_quantity',ascending=False)
-    #         display_sorted_data(df_sorted)
-    #     except FileNotFoundError :
-    #         messagebox.showerror("Error", "The csv file was not found.")
+        form_frame = Frame(result_area)
+        result_area.window_create("insert", window=form_frame)
 
-    # def sort_by_price():
-    #     try :
-    #         df = pd.read_csv(f'csv_files/orders_{username}.csv')
-    #         df_sorted = df.sort_values(by= 'P_price (in $/Kg)', ascending=False)
-    #         display_sorted_data(df_sorted)
-    #     except FileNotFoundError :
-    #         messagebox.showerror("Error", "The csv file was not found.")
+        Label(form_frame, text="View your orders sorted by :", font=("Arial", 12)).grid(row=0, column=0, columnspan=3, padx=5, pady=10)
 
-    # def sort_by_name():
-    #     try :
-    #         df = pd.read_csv(f'csv_files/orders_{username}.csv')
-    #         df_sorted = df.sort_values(by= 'P_name', ascending=True)
-    #         display_sorted_data(df_sorted)
-    #     except FileNotFoundError :
-    #         messagebox.showerror("Error", "The csv file was not found.")
+        def display_sorted_orders(sort_column) :
+            try :
+                orders_df = pd.read_csv(f'csv_files/orders_{username}.csv')
+                if not orders_df.empty :
+                    sorted_df = orders_df.sort_values(by=sort_column)
 
+                    result_area.delete(1.0, END)
+                    result_area.insert(END, f"Orders sorted by {sort_column}:\n\n")
 
-    # def apply_sorting():
-    #     sort_criteria = []
+                    for index, row in sorted_df.iterrows() :
+                        result_area.insert(END, f"{row['P_name']} | "
+                                                f"Quantity: {row['P_quantity']} | Price: {row['P_price (in $/Kg)']} | "
+                                                f"Order Date: {row['order_date']}\n")
+                else :
+                    result_area.insert(END, "No orders found.")
+            except FileNotFoundError :
+                messagebox.showerror("Error", "The csv file was not found.")
 
-    #     if sort_quantity_ver.get():
-    #        sort_criteria.append('P_quantity')
-    #     if sort_price_var.get():
-    #        sort_criteria.append('P_price (in $/Kg)')
-    #     if sort_name_var.get():
-    #        sort_criteria.append('P_name')
+        sort_by_name_button = Button(form_frame, text="Sort by Product Name", command=lambda: display_sorted_orders('P_name'))
+        sort_by_name_button.grid(row=1, column=0, padx=5, pady=5)
 
-    #     if not sort_criteria:
-    #        messagebox.showwarning("Input error", "Please select at least one sorting criterion : ")
-    #        return
+        sort_by_quantity_button = Button(form_frame, text="Sort by Quantity", command=lambda: display_sorted_orders('P_quantity'))
+        sort_by_quantity_button.grid(row=1, column=1, padx=5, pady=5)
 
-    #     try : 
-    #         df = pd.read_csv(f'csv_files/orders_{username}.csv')
-    #         df_sorted = df.sort_values(by=sort_criteria, ascending=False)
-    #         display_sorted_data(df_sorted)
-    #     except FileNotFoundError : 
-    #         messagebox.showerror("Error", "The csv file was not found")
-
-    # def display_sorted_data():
-    #     prod_list.delete(1.0, tk.END)
-    #     prod_list.insert(tk.END, "Sorted Products : \n")
-    #     for index, row in df_sorted.iterrows():
-    #         prod_list.insert(tk.END, f"ID : {row['ID']} | Name : {row['P_name']} | Quantity : {row['P_quantity']} | Price : {row['P_price (in $/Kg)']} | Date : {row['order_date']}\n")
+        sort_by_price_button = Button(form_frame, text="Sort by Price", command=lambda: display_sorted_orders('P_price (in $/Kg)'))
+        sort_by_price_button.grid(row=1, column=2, padx=5, pady=5)
 
         
 window = AppWindow()

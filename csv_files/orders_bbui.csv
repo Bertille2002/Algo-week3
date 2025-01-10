@@ -1,1 +1,5 @@
-ID,first_name,last_name,email,username,password,order_date
+ID,first_name,last_name,email,username,password,order_date,P_name,P_quantity,P_price (in $/Kg)
+2,,,,,,2025-01-10 17:31:34,morbier,52.0,767.0
+3,,,,,,2025-01-10 17:32:19,thym,4.0,30.0
+4,,,,,,2025-01-10 17:33:53,Mozzarella,4.0,4.2
+5,,,,,,2025-01-10 17:34:00,salades,5.0,12.5
