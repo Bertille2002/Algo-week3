@@ -1,4 +1,4 @@
-from tkinter import Tk, Label, Entry, messagebox, Toplevel, Button, Frame, Text, END
+from tkinter import Tk, Label, Entry, messagebox, Toplevel, Button, Frame, Text, END, StringVar, OptionMenu, Listbox
 from tkinter.ttk import Combobox
 import pandas as pd
 import hashlib
@@ -229,13 +229,13 @@ class AppWindow(Tk) :
         add_prod_button = Button(button_frame, text= "Order new product", width=30, command=lambda: self.open_add_product_form(result_area))
         add_prod_button.pack(pady=10)
 
-        del_prod_button = Button(button_frame, text= "Delete product order", width=30, command=lambda: self.delete_prod(result_area, username))
+        del_prod_button = Button(button_frame, text= "Delete product in order file", width=30, command=lambda: self.open_delete_product_form(result_area, username))
         del_prod_button.pack(pady=10)
 
-        search_prod_button = Button(button_frame, text= "Search for product", width=30, command=lambda: self.search_prod(result_area, username))
+        search_prod_button = Button(button_frame, text= "Search for product in file", width=30, command=lambda: self.open_search_prod_form(result_area, username))
         search_prod_button.pack(pady=10)
 
-        sort_prod_button = Button(button_frame, text= "View products sorted", width=30)
+        sort_prod_button = Button(button_frame, text= "View ordered products sorted", width=30)
         sort_prod_button.pack(pady=10)
 
     def logout(self, menu_window) :
@@ -342,164 +342,216 @@ class AppWindow(Tk) :
     def open_add_product_form(self, result_area) :
         result_area.delete(1.0, END)
 
-        self.product_list = self.load_product_list()
-        self.selected_product_label = Label(self.frame, text="Product : ")
-        self.selected_product_label.grid(row=2, column=0)
-        self.selected_product = Combobox(self.frame, values=self.product_list)
-        self.selected_product.grid(row=2, column=1)
+        try :
+            products_df = pd.read_csv('csv_files/products.csv')
+        except FileNotFoundError :
+            messagebox.showerror("Error", "Product file was not found")
+
+        form_frame = Frame(result_area)
+        result_area.window_create("insert", window=form_frame)
+
+        product_var = StringVar()
+        quantity_var = StringVar()
+        price_var = StringVar()
+
+        Label(form_frame, text="Select Product :").grid(row=0, column=0, padx=5, pady=5)
+        product_dropdown = OptionMenu(form_frame, product_var, *products_df['P_name'].tolist())
+        product_dropdown.grid(row=0, column=1, padx=5, pady=5)
+
+        Label(form_frame, text="Quantity :").grid(row=1, column=0, padx=5, pady=5)
+        quantity_entry = Entry(form_frame, textvariable=quantity_var)
+        quantity_entry.grid(row=1, column=1, padx=5, pady=5)
+
+        Label(form_frame, text="Total price :").grid(row=2, column=0, padx=5, pady=5)
+        total_price_label = Label(form_frame, textvariable=price_var)
+        total_price_label.grid(row=2, column=1, padx=5, pady=5)
+
+        def update_total_price(*args) :
+            try :
+                product_name = product_var.get()
+                quantity = int(quantity_entry.get())
+                product_row = products_df[products_df['P_name'] == product_name]
+                if not product_row.empty :
+                    price = product_row['P_price (in $/Kg)'].values[0]
+                    total_price = price * quantity 
+                    price_var.set(f"${total_price:.2f}")
+                else : 
+                    price_var.set("Invalid product")
+            except ValueError : 
+                price_var.set("Enter valid quantity")
+
+        quantity_var.trace("w", update_total_price)
+        product_var.trace("w", update_total_price)
         
-        self.quantity_label = Label(self.frame, text="Quantity:")
-        self.quantity_label.grid(row=3, column=0)
-        self.quantity_entry = Entry(self.frame)
-        self.quantity_entry.grid(row=3, column=1)
+        def place_order() :
+            product_name = product_var.get()
+            try :
+                quantity = int(quantity_var.get().strip())
+                if quantity <= 0 :
+                    raise ValueError("Quantity must be greater than 0.")
+                product_row = products_df[products_df['P_name'] == product_name]
+                if product_row.empty :
+                    messagebox.showerror("Error", "Invalid product selected.")
+                    return 
+                price = product_row['P_price (in $/Kg)'].values[0]
+                total_price = price * quantity
+                order_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S") 
 
-        self.price_label = Label(self.frame, text="Price: $0")
-        self.price_label.grid(row=4, column=1)
+                user_order_file = f'csv_files/orders_{self.username_entry.get().strip()}.csv'
+                try : 
+                    orders_df = pd.read_csv(user_order_file)
+                    new_id = orders_df['ID'].max() + 1 if not orders_df.empty else 1
+                except FileNotFoundError : 
+                    orders_df = pd.DataFrame(columns=["ID", "P_name", "P_quantity", "P_price (in $/Kg)", "order_date"])
+                    new_id = 1 
 
-        self.quantity_entry.bind("<KeyRelease>", self.update_price)
+                order_data = pd.DataFrame([{
+                    'ID': new_id,
+                    'P_name': product_name,
+                    'P_quantity': quantity,
+                    'P_price (in $/Kg)': total_price,
+                    'order_date': order_date
+                }])
+                
+                orders_df = pd.concat([orders_df, order_data], ignore_index=True)
+                orders_df.to_csv(user_order_file, index=False)
 
-        self.add_button = Button(self.frame, text="Add Product", command=self.add_prod)
-        self.add_button.grid(row=5, columnspan=2, pady=10)
+                messagebox.showinfo("Success","Order placed successfully!")
+                result_area.delete(1.0, END)
+            except ValueError : 
+                messagebox.showerror("Error", "Please enter a valid quantity.")
+            except Exception as e :
+                messagebox.showerror("Error", f"An unexpected error occurred: {e}")
         
-    def load_product_list(self) :
-        df = pd.read_csv('csv_files/products.csv')
-        return df['P_name'].tolist()
+        order_button = Button(form_frame, text="Order", command=place_order)
+        order_button.grid(row=3, column=0, columnspan=2, pady=10)
+    
+    def open_delete_product_form(self, result_area, username) :
+        result_area.delete(1.0, END)
+        form_frame = Frame(result_area)
+        result_area.window_create("insert", window=form_frame)
 
-    def update_price(self, event=None) :
-        selected_product = self.selected_product.get()
-        df = pd.read_csv('csv_files/products.csv')
-        product_row = df[df['P_name'] == selected_product]
-        unit_price = product_row['Price per unit'].values[0]
+        Label(form_frame, text="Select Product to Delete :").grid(row=0,column=0, padx=5, pady=5)
+
+        listbox = Listbox(form_frame)
+        listbox.grid(row=1, column=0, pady=5, columnspan=2)
+
+        user_order_file = f'csv_files/orders_{username}.csv'
+
         try : 
-            quantity = int(quantity_entry.get())
-            total_price = unit_price * quantity
-            price_label.config(text=f"Price: ${total_price:.2f}")
-        except ValueError :
-            price_label.config(text="Price: $0")
-
-    def add_prod(self, result_area, username):
-        selected_product = self.selected_product.get()
-        quantity = self.quantity_entry.get()
-        if not selected_product or not quantity :
-            messagebox.showwarning("Input error", "Please fill all fields")
+            orders_df = pd.read_csv(user_order_file)
+            for index, row in orders_df.iterrows() :
+                listbox.insert(END, f"{row['P_name']} (Qty: {row['P_quantity']})")
+        except FileNotFoundError :
+            messagebox.showerror("Error", "No orders found for this user.")
             return 
-        try : 
-            quantity = int(quantity)
-            if quantity <= 0 :
-                messagebox.showerror("Error", "Quantity must be greater than zero.")
+        
+        def delete_selected_product() :
+            selected_index = listbox.curselection()
+            if not selected_index :
+                messagebox.showerror("Error", "Please select a product to delete.")
                 return 
-        except ValueError :
-            messagebox.showerror("Error", "Please enter a valid number for quantity.")
-            return 
-        
-        product_row = df[df['Product Name'] == selected_product]
-        price_per_unit = product_row['Price per unit'].values[0]
-        total_price = price_per_unit * quantity
-        order_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        new_id = next_prodid()
-        new_row = {'ID': new_id, 'P_name' : selected_product, 'P_quantity': [quantity], 'P_price (in $/Kg)' : total_price, 'order_date' : order_date}
+            
+            selected_product = listbox.get(selected_index)
+            product_name = selected_product.split(" (Qty: ")[0]
+            nonlocal orders_df 
+            orders_df = orders_df[orders_df['P_name'] != product_name]
+            orders_df.to_csv(user_order_file, index=False)
+            listbox.delete(selected_index)
+            messagebox.showinfo("Success", f"Deleted product: {product_name}")
 
-        try : 
-            df = pd.read_csv(f'csv_files/orders_{username}.csv')
-            df = df.append(new_row, ignore_index=True)
-            df.to_csv(f'csv_files/orders_{username}.csv', index=False)
-            messagebox.showinfo("New product added successfully !")
-            clear.entries()
-            view_myprod(result_area, username)
-        except FileNotFoundError:
-            df = pd.DataFrame([new_row])
-            df.to_csv(f'csv_files/orders_{username}.csv', index=False)
-            messagebox.showinfo("New product added successully !")
-            clear.entries()
-            view_myprod(result_area, username)
+        delete_button = Button(form_frame, text="Delete", command=delete_selected_product)
+        delete_button.grid(row=2, column=0, columnspan=2, pady=10)
 
-    def delete_prod():
-        row_to_delete= delete_name_entry.get()
+    def open_search_prod_form(self, result_area, username) :
+        result_area.delete(1.0, END)
+        form_frame = Frame(result_area)
+        result_area.window_create("insert", window=form_frame)
 
-        if not row_to_delete :
-            messagebox.showwarning("Input error", "Please enter the product's name you wish to delete")
-            return
+        Label(form_frame, text="Please Enter a Product Name to Search :").grid(row=0,column=0, padx=5, pady=5)
 
-        try:
-            df = pd.read_csv(f'csv_files/orders_{username}.csv')
-            df = df[df['P_name'] != row_to_delete]
-            df.to_csv(f'csv_files/orders_{username}.csv', index = False)
-            messagebox.showinfo(f"Product '{row_to_delete}' deleted successully !")
-            delete_name_entry.delete(0, END)
-            view_myprod()
-        except FileNotFoundError :
-            messagebox.showerror("Error", "The file was not found")
+        product_entry = Entry(form_frame)
+        product_entry.grid(row=0, column=1, padx=5, pady=5)
 
-    def search_prod():
-        prod_to_search = search_name_entry.get()
+        def search_product() :
+            prod_to_search = product_entry.get().strip()
+            if not prod_to_search:
+                messagebox.showwarning("Input error", "Please enter a product's name to search")
+                return 
 
-        if not prod_to_search:
-            messagebox.showwarning("Input error", "Please enter the product's name you wish to search : ")
-            return 
-
-        try : 
-            df = pd.read_csv(f'csv_files/orders_{username}.csv')
-            if prod_to_search in df['P_name'].values:
+            try : 
+                df = pd.read_csv(f'csv_files/orders_{username}.csv')
                 result = df[df['P_name'] == prod_to_search]
-                prod_list.delete(1.0, END)
-                prod_list.insert[END, f"Product found : {result.iloc[0]['P_name']} | ID: {result.iloc[0]['ID']} | Quantity : {result.iloc[0]['P_quantity']} | Price : {result.iloc[0] ['P_price (in $/Kg)]']} | Date : {result.iloc[0]['order_date']}\n"]
-            else : 
-                messagebox.showinfo("Search result", f"Product '{prod_to_search}' not found")
-        except FileNotFoundError :
-            messagebox.showerror("Error","The csv file was not found.")
+                if not result.empty :
+                    result = result.iloc[0]
+                    result_area.delete(1.0, END)
+                    result_area.insert(END,f"Product found :\n"
+                                            f"{result['P_name']}\n" 
+                                            f"ID: {result['ID']}\n" 
+                                            f"Quantity : {result['P_quantity']}\n" 
+                                            f"Price : {result['P_price (in $/Kg)']}\n" 
+                                            f"Date : {result['order_date']}\n")
+                else : 
+                    result_area.delete(1.0, END)
+                    result_area.insert(END, f"Product '{prod_to_search}' not found.")
+            except FileNotFoundError :
+                messagebox.showerror("Error","The csv file was not found.")
+
+        search_button = Button(form_frame, text="Search", command=search_product)
+        search_button.grid(row=1, column=0, columnspan=2, pady=10)
 
 
-    def sort_quantity():
-        try :
-            df = pd.read_csv(f'csv_files/orders_{username}.csv')
-            df_sorted = df.sort_values(by='P_quantity',ascending=False)
-            display_sorted_data(df_sorted)
-        except FileNotFoundError :
-            messagebox.showerror("Error", "The csv file was not found.")
+    # def sort_quantity():
+    #     try :
+    #         df = pd.read_csv(f'csv_files/orders_{username}.csv')
+    #         df_sorted = df.sort_values(by='P_quantity',ascending=False)
+    #         display_sorted_data(df_sorted)
+    #     except FileNotFoundError :
+    #         messagebox.showerror("Error", "The csv file was not found.")
 
-    def sort_by_price():
-        try :
-            df = pd.read_csv(f'csv_files/orders_{username}.csv')
-            df_sorted = df.sort_values(by= 'P_price (in $/Kg)', ascending=False)
-            display_sorted_data(df_sorted)
-        except FileNotFoundError :
-            messagebox.showerror("Error", "The csv file was not found.")
+    # def sort_by_price():
+    #     try :
+    #         df = pd.read_csv(f'csv_files/orders_{username}.csv')
+    #         df_sorted = df.sort_values(by= 'P_price (in $/Kg)', ascending=False)
+    #         display_sorted_data(df_sorted)
+    #     except FileNotFoundError :
+    #         messagebox.showerror("Error", "The csv file was not found.")
 
-    def sort_by_name():
-        try :
-            df = pd.read_csv(f'csv_files/orders_{username}.csv')
-            df_sorted = df.sort_values(by= 'P_name', ascending=True)
-            display_sorted_data(df_sorted)
-        except FileNotFoundError :
-            messagebox.showerror("Error", "The csv file was not found.")
+    # def sort_by_name():
+    #     try :
+    #         df = pd.read_csv(f'csv_files/orders_{username}.csv')
+    #         df_sorted = df.sort_values(by= 'P_name', ascending=True)
+    #         display_sorted_data(df_sorted)
+    #     except FileNotFoundError :
+    #         messagebox.showerror("Error", "The csv file was not found.")
 
 
-    def apply_sorting():
-        sort_criteria = []
+    # def apply_sorting():
+    #     sort_criteria = []
 
-        if sort_quantity_ver.get():
-           sort_criteria.append('P_quantity')
-        if sort_price_var.get():
-           sort_criteria.append('P_price (in $/Kg)')
-        if sort_name_var.get():
-           sort_criteria.append('P_name')
+    #     if sort_quantity_ver.get():
+    #        sort_criteria.append('P_quantity')
+    #     if sort_price_var.get():
+    #        sort_criteria.append('P_price (in $/Kg)')
+    #     if sort_name_var.get():
+    #        sort_criteria.append('P_name')
 
-        if not sort_criteria:
-           messagebox.showwarning("Input error", "Please select at least one sorting criterion : ")
-           return
+    #     if not sort_criteria:
+    #        messagebox.showwarning("Input error", "Please select at least one sorting criterion : ")
+    #        return
 
-        try : 
-            df = pd.read_csv(f'csv_files/orders_{username}.csv')
-            df_sorted = df.sort_values(by=sort_criteria, ascending=False)
-            display_sorted_data(df_sorted)
-        except FileNotFoundError : 
-            messagebox.showerror("Error", "The csv file was not found")
+    #     try : 
+    #         df = pd.read_csv(f'csv_files/orders_{username}.csv')
+    #         df_sorted = df.sort_values(by=sort_criteria, ascending=False)
+    #         display_sorted_data(df_sorted)
+    #     except FileNotFoundError : 
+    #         messagebox.showerror("Error", "The csv file was not found")
 
-    def display_sorted_data():
-        prod_list.delete(1.0, tk.END)
-        prod_list.insert(tk.END, "Sorted Products : \n")
-        for index, row in df_sorted.iterrows():
-            prod_list.insert(tk.END, f"ID : {row['ID']} | Name : {row['P_name']} | Quantity : {row['P_quantity']} | Price : {row['P_price (in $/Kg)']} | Date : {row['order_date']}\n")
+    # def display_sorted_data():
+    #     prod_list.delete(1.0, tk.END)
+    #     prod_list.insert(tk.END, "Sorted Products : \n")
+    #     for index, row in df_sorted.iterrows():
+    #         prod_list.insert(tk.END, f"ID : {row['ID']} | Name : {row['P_name']} | Quantity : {row['P_quantity']} | Price : {row['P_price (in $/Kg)']} | Date : {row['order_date']}\n")
 
         
 window = AppWindow()
