@@ -21,24 +21,18 @@ def load_hashed_user_data():
         }
     return user_data
 
-def login(username, password):
-    hashed_user_data = load_hashed_user_data()
-    if username in hashed_user_data:
-        hashed_password = hashed_user_data[username]['password']
-        input_password_hash = hashlib.sha256(password.encode()).hexdigest()
-        if input_password_hash == hashed_password:
-            messagebox.showinfo("Success", "Login successful!")
-            user_main(username)  # Redirect to the main menu
-        else:
-            messagebox.showerror("Error", "Incorrect password.")
-    else:
-        messagebox.showerror("Error", "Username not found. Try again or create an account.")
+def log_login_attempt(username, success):
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    status = "SUCCESS" if success else "FAILURE"
+    log_entry = f"{timestamp} | Username: {username} | Status: {status}\n"
+    with open("login_attempts.csv", "a") as log_file:
+        log_file.write(log_entry)
+
 
 # Placeholder for redirection function
 def user_main(username):
     # Simulate redirection to another menu
     messagebox.showinfo("Welcome", f"Welcome, {username}! Redirecting to the main menu...")
-    # Implement actual redirection logic here
 
 # Helper function: Get last ID
 def get_last_ID():
@@ -126,14 +120,18 @@ class AppWindow(Tk) :
                 hashed_input_password = hashlib.sha256(salted_input_password.encode()).hexdigest()
                 if hashed_input_password == stored_hashed_password :
                     if self.check_password_pwned(password) : 
+                        log_login_attempt(username, True)
                         messagebox.showinfo("Success", f"Welcome, {username}! Unfortunately, Our systems have detected that your password may be compromised. Please change it on our plateform or use the link we have sent you via e-mail.")
                         self.open_user_menu(username)
                     else :
+                        log_login_attempt(username, True)
                         messagebox.showinfo("Success", f"Welcome, {username}!")
                         self.open_user_menu(username)
                 else : 
+                    log_login_attempt(username, False)
                     messagebox.showerror("Error", "Incorrect password.")
             else : 
+                log_login_attempt(username, False)
                 messagebox.showerror("Error","Username not found.")
         else : 
             messagebox.showerror("Error","Please enter both username and password.")
